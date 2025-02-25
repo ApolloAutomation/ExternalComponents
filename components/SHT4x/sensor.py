@@ -25,32 +25,31 @@ SHT4XComponent = sht4x_ns.class_(
 )
 
 CONF_PRECISION = "precision"
+CONF_HEATER_POWER = "heater_power"
+CONF_HEATER_TIME = "heater_time"
+CONF_HEATER_MAX_DUTY = "heater_max_duty"
+CONF_SERIAL_NUMBER = "serial_number"
+
 SHT4XPRECISION = sht4x_ns.enum("SHT4XPRECISION")
+SHT4XHEATERPOWER = sht4x_ns.enum("SHT4XHEATERPOWER")
+SHT4XHEATERTIME = sht4x_ns.enum("SHT4XHEATERTIME")
+
 PRECISION_OPTIONS = {
     "High": SHT4XPRECISION.SHT4X_PRECISION_HIGH,
     "Med": SHT4XPRECISION.SHT4X_PRECISION_MED,
     "Low": SHT4XPRECISION.SHT4X_PRECISION_LOW,
 }
 
-CONF_HEATER_POWER = "heater_power"
-SHT4XHEATERPOWER = sht4x_ns.enum("SHT4XHEATERPOWER")
 HEATER_POWER_OPTIONS = {
     "High": SHT4XHEATERPOWER.SHT4X_HEATERPOWER_HIGH,
     "Med": SHT4XHEATERPOWER.SHT4X_HEATERPOWER_MED,
     "Low": SHT4XHEATERPOWER.SHT4X_HEATERPOWER_LOW,
 }
 
-CONF_HEATER_TIME = "heater_time"
-SHT4XHEATERTIME = sht4x_ns.enum("SHT4XHEATERTIME")
 HEATER_TIME_OPTIONS = {
     "Long": SHT4XHEATERTIME.SHT4X_HEATERTIME_LONG,
     "Short": SHT4XHEATERTIME.SHT4X_HEATERTIME_SHORT,
 }
-
-CONF_HEATER_MAX_DUTY = "heater_max_duty"
-
-# --- NEW: allow a sensor for "serial_number"
-CONF_SERIAL_NUMBER = "serial_number"
 
 CONFIG_SCHEMA = (
     cv.Schema(
@@ -74,11 +73,10 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_HEATER_POWER, default="High"): cv.enum(HEATER_POWER_OPTIONS),
             cv.Optional(CONF_HEATER_TIME, default="Long"): cv.enum(HEATER_TIME_OPTIONS),
             cv.Optional(CONF_HEATER_MAX_DUTY, default=0.0): cv.float_range(min=0.0, max=0.05),
-            # NEW: optional sensor for serial number
+            # NEW: optional numeric sensor for serial
             cv.Optional(CONF_SERIAL_NUMBER): sensor.sensor_schema(
                 accuracy_decimals=0,
                 icon="mdi:chip",
-                # no typical device_class for a serial, so skip that
             ),
         }
     )
@@ -91,6 +89,7 @@ TYPES = {
     CONF_HUMIDITY: "set_humidity_sensor",
 }
 
+
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
@@ -101,12 +100,13 @@ async def to_code(config):
     cg.add(var.set_heater_time_value(config[CONF_HEATER_TIME]))
     cg.add(var.set_heater_duty_value(config[CONF_HEATER_MAX_DUTY]))
 
+    # Handle temperature/humidity sensors
     for key, funcName in TYPES.items():
         if key in config:
             sens_ = await sensor.new_sensor(config[key])
             cg.add(getattr(var, funcName)(sens_))
 
-    # NEW: If user configured "serial_number", wire up set_serial_sensor
+    # If user configures "serial_number", wire that up
     if CONF_SERIAL_NUMBER in config:
         serial_sens = await sensor.new_sensor(config[CONF_SERIAL_NUMBER])
         cg.add(var.set_serial_sensor(serial_sens))
