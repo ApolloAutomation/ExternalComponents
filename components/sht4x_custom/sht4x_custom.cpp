@@ -87,7 +87,6 @@ void SHT4XComponent::start_heater_() {
 void SHT4XComponent::read_serial_() {
     ESP_LOGW(TAG, "Reading SHT4x Serial");
   
-    // 1) send 0x89
     this->write_command(READ_SERIAL_CMD);
 
     // Schedule the read 5ms later (the sensor typically needs <1ms, but 5ms is safe).
@@ -98,17 +97,13 @@ void SHT4XComponent::read_serial_() {
         ESP_LOGE(TAG, "Error reading SHT4x serial number");
         return;
       }
-
-  // 4) combine into 32-bit
-  uint32_t serial = ((uint32_t)buffer[0] << 16) | buffer[1];
-
-  ESP_LOGW(TAG, "SHT4x Serial Number: 0x%08X", serial);
-
-  // 5) publish if user configured the sensor
-  if (this->serial_sensor_ != nullptr) {
-    // Cast to float. May lose some bits for large serials.
-    this->serial_sensor_->publish_state((float) serial);
-  }
+      // Combine two 16-bit words into a 32-bit
+      uint32_t serial = ((uint32_t) buffer[0] << 16) | buffer[1];
+      ESP_LOGI(TAG, "SHT4x Serial Number: 0x%08X", serial);
+      
+      // If you have a sensor pointer for serial:
+       this->serial_sensor_->publish_state((float) serial);
+    });
 }
 
 }  // namespace sht4x
