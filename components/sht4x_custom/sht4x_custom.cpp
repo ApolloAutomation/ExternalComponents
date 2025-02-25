@@ -1,4 +1,4 @@
-#include "sht4x.h"
+#include "sht4x_custom.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
