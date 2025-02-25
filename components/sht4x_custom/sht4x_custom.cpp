@@ -90,8 +90,6 @@ void SHT4XComponent::read_serial_() {
     // 1) send 0x89
   this->write_command(READ_SERIAL_CMD);
 
-  // 2) short delay
-  delay(2);
 
   // 3) read 6 bytes => 2 words + 2 CRC
   uint16_t buffer[2];
