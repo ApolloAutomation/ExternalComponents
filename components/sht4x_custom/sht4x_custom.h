@@ -28,6 +28,7 @@ class SHT4XComponent : public PollingComponent, public sensirion_common::Sensiri
 
   // NEW: set_serial_sensor
   void set_serial_sensor(sensor::Sensor *serial_sensor) { serial_sensor_ = serial_sensor; }
+  void try_read_serial_();
 
  protected:
   SHT4XPRECISION precision_;
