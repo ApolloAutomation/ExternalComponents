@@ -88,15 +88,16 @@ void SHT4XComponent::read_serial_() {
     ESP_LOGW(TAG, "Reading SHT4x Serial");
   
     // 1) send 0x89
-  this->write_command(READ_SERIAL_CMD);
+    this->write_command(READ_SERIAL_CMD);
 
-
-  // 3) read 6 bytes => 2 words + 2 CRC
-  uint16_t buffer[2];
-  if (!this->read_data(buffer, 2)) {
-    ESP_LOGE(TAG, "Error reading SHT4x serial number");
-    return;
-  }
+    // Schedule the read 5ms later (the sensor typically needs <1ms, but 5ms is safe).
+    this->set_timeout(5, [this]() {
+      uint16_t buffer[2];
+      bool status = this->read_data(buffer, 2);
+      if (!status) {
+        ESP_LOGE(TAG, "Error reading SHT4x serial number");
+        return;
+      }
 
   // 4) combine into 32-bit
   uint32_t serial = ((uint32_t)buffer[0] << 16) | buffer[1];
