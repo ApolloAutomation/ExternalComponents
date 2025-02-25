@@ -12,7 +12,7 @@ static const uint8_t MEASURECOMMANDS[] = {0xFD, 0xF6, 0xE0};
 static const uint8_t READ_SERIAL_CMD = 0x89;
 
 void SHT4XComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up SHT4x...");
+  ESP_LOGCONFIG(TAG, "Setting up Custom SHT4x...");
 
   // Read and log the serial once
   this->read_serial_();
