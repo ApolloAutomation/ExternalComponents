@@ -89,7 +89,7 @@ void SHT4XComponent::read_serial_() {
   this->write_command(READ_SERIAL_CMD);
 
   // 2) short delay
-  delay(2);
+  delay(5);
 
   // 3) read 6 bytes => 2 words + 2 CRC
   uint16_t buffer[2];
@@ -101,7 +101,7 @@ void SHT4XComponent::read_serial_() {
   // 4) combine into 32-bit
   uint32_t serial = ((uint32_t)buffer[0] << 16) | buffer[1];
 
-  ESP_LOGI(TAG, "SHT4x Serial Number: 0x%08X", serial);
+  ESP_LOGCONFIG(TAG, "SHT4x Serial Number: 0x%08X", serial);
 
   // 5) publish if user configured the sensor
   if (this->serial_sensor_ != nullptr) {
