@@ -2,7 +2,7 @@
 
 #include "esphome/core/component.h"
 #include "esphome/components/sensor/sensor.h"
-#include "esphome/components/text_sensor/text_sensor.h"
+#include "esphome/components/text_sensor_custom/text_sensor.h"
 #include "esphome/components/sensirion_common/i2c_sensirion.h"
 
 namespace esphome {
