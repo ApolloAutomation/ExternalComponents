@@ -85,11 +85,13 @@ void SHT4XComponent::start_heater_() {
 }
 
 void SHT4XComponent::read_serial_() {
-  // 1) send 0x89
+    ESP_LOGW(TAG, "Reading SHT4x Serial");
+  
+    // 1) send 0x89
   this->write_command(READ_SERIAL_CMD);
 
   // 2) short delay
-  delay(5);
+  delay(2);
 
   // 3) read 6 bytes => 2 words + 2 CRC
   uint16_t buffer[2];
@@ -101,7 +103,7 @@ void SHT4XComponent::read_serial_() {
   // 4) combine into 32-bit
   uint32_t serial = ((uint32_t)buffer[0] << 16) | buffer[1];
 
-  ESP_LOGCONFIG(TAG, "SHT4x Serial Number: 0x%08X", serial);
+  ESP_LOGW(TAG, "SHT4x Serial Number: 0x%08X", serial);
 
   // 5) publish if user configured the sensor
   if (this->serial_sensor_ != nullptr) {
