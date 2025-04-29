@@ -6,6 +6,7 @@
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/binary_sensor/binary_sensor.h"
+#include <inttypes.h>
 
 namespace esphome {
 namespace radon_uart_sensor {
@@ -63,7 +64,7 @@ class RadonUARTSensor : public esphome::PollingComponent, public esphome::uart::
                                (data_frame[27] << 24);
       uint32_t calculated_crc = calculate_crc32(data_frame.data(), 24);
       if (received_crc != calculated_crc) {
-        ESP_LOGE("radon_uart_sensor", "CRC mismatch: received 0x%08X, calculated 0x%08X", received_crc, calculated_crc);
+        ESP_LOGE("radon_uart_sensor", "CRC mismatch: received 0x%08" PRIx32 ", calculated 0x%08" PRIx32, received_crc, calculated_crc);
         crc_fail_count_++;
         if (crc_fail_count_ >= max_crc_failures_) {
           ESP_LOGE("radon_uart_sensor", "Max CRC failures reached.");
