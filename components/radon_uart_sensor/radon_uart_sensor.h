@@ -87,7 +87,7 @@ class RadonUARTSensor : public esphome::PollingComponent, public esphome::uart::
     }
   }
 
-  // Accessor methods for sensors
+  // Getter methods for sensors
   esphome::sensor::Sensor *get_running_time_sensor() { return &running_time_sensor_; }
   esphome::sensor::Sensor *get_cumulative_radon_sensor() { return &cumulative_radon_sensor_; }
   esphome::sensor::Sensor *get_last10_radon_sensor() { return &last10_radon_sensor_; }
@@ -97,6 +97,17 @@ class RadonUARTSensor : public esphome::PollingComponent, public esphome::uart::
   esphome::sensor::Sensor *get_last48_radon_sensor() { return &last48_radon_sensor_; }
   esphome::sensor::Sensor *get_last96_radon_sensor() { return &last96_radon_sensor_; }
   esphome::binary_sensor::BinarySensor *get_status_binary_sensor() { return &status_binary_sensor_; } // For online/offline status
+  
+  // Setter methods for sensors
+  void set_running_time_sensor(esphome::sensor::Sensor *sens) { running_time_sensor_ = *sens; }
+  void set_cumulative_radon_sensor(esphome::sensor::Sensor *sens) { cumulative_radon_sensor_ = *sens; }
+  void set_last10_radon_sensor(esphome::sensor::Sensor *sens) { last10_radon_sensor_ = *sens; }
+  void set_last1_radon_sensor(esphome::sensor::Sensor *sens) { last1_radon_sensor_ = *sens; }
+  void set_last12_radon_sensor(esphome::sensor::Sensor *sens) { last12_radon_sensor_ = *sens; }
+  void set_last24_radon_sensor(esphome::sensor::Sensor *sens) { last24_radon_sensor_ = *sens; }
+  void set_last48_radon_sensor(esphome::sensor::Sensor *sens) { last48_radon_sensor_ = *sens; }
+  void set_last96_radon_sensor(esphome::sensor::Sensor *sens) { last96_radon_sensor_ = *sens; }
+  void set_status_binary_sensor(esphome::binary_sensor::BinarySensor *sens) { status_binary_sensor_ = *sens; }
 
  protected:
   // Handle the "Welcome" string sent upon power-up
