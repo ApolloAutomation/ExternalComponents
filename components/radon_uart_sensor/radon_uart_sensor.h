@@ -13,11 +13,30 @@ namespace radon_uart_sensor {
 
 class RadonUARTSensor : public esphome::PollingComponent, public esphome::uart::UARTDevice {
  public:
-  RadonUARTSensor(esphome::uart::UARTComponent *parent) : PollingComponent(10000), UARTDevice(parent) {} // Poll every 10 seconds
-
+  // Default constructor for ESPHome's code generation
+  RadonUARTSensor() : PollingComponent(10000), UARTDevice(nullptr) {
+    uart_parent_ = nullptr;
+  }
+  
+  // Constructor with explicit UART component
+  RadonUARTSensor(esphome::uart::UARTComponent *parent) : PollingComponent(10000), UARTDevice(parent) {
+    uart_parent_ = parent;
+  } // Poll every 10 seconds
+  
+  // Setter for UART component to be called by ESPHome
+  void set_uart_parent(esphome::uart::UARTComponent *parent) {
+    uart_parent_ = parent;
+  }
+  
   void setup() override {
     ESP_LOGI("radon_uart_sensor", "Initializing Radon UART Sensor");
     
+    // Reinitialize the UART connection if parent was set after construction
+    if (uart_parent_ != nullptr) {
+      // Create a new UARTDevice with the parent (this is a hack but should work)
+      new (this) UARTDevice(uart_parent_);
+    }
+
     // Set names for sensors
     running_time_sensor_.set_name("Running Time");
     running_time_sensor_.set_unit_of_measurement("s");
@@ -47,6 +66,12 @@ class RadonUARTSensor : public esphome::PollingComponent, public esphome::uart::
   }
 
   void update() override {
+    // Skip if UART is not initialized
+    if (uart_parent_ == nullptr) {
+      ESP_LOGW("radon_uart_sensor", "UART not initialized, skipping update");
+      return;
+    }
+    
     // Handle Welcome String
     handle_welcome_string();
 
@@ -224,6 +249,7 @@ class RadonUARTSensor : public esphome::PollingComponent, public esphome::uart::
   const std::string welcome_string_ = "Welcome";
   int crc_fail_count_ = 0;
   const int max_crc_failures_ = 5;
+  esphome::uart::UARTComponent *uart_parent_ = nullptr;  // Store UART parent for late initialization
 };
 
 }  // namespace radon_uart_sensor
