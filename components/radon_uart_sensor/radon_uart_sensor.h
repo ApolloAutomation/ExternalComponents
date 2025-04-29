@@ -102,11 +102,20 @@ class RadonUARTSensor : public esphome::PollingComponent, public esphome::uart::
 
     // Check available data safely
     int available_bytes = 0;
-    if (uart_parent_ == nullptr || !uart_parent_->available()) {
-      ESP_LOGE("radon_uart_sensor", "Error checking available bytes");
+    if (uart_parent_ == nullptr) {
+      ESP_LOGW("radon_uart_sensor", "UART parent is null, cannot check available bytes");
       status_binary_sensor_.publish_state(false);
       return;
     }
+
+    // Now that we know uart_parent_ is not null, we can safely check if it's available
+    if (!uart_parent_->available()) {
+      ESP_LOGW("radon_uart_sensor", "UART is not available for communication");
+      status_binary_sensor_.publish_state(false);
+      return;
+    }
+
+    // Both checks passed, get available bytes
     available_bytes = available();
 
     // After Welcome, process data frames
