@@ -102,25 +102,26 @@ class RadonUARTSensor : public esphome::PollingComponent, public esphome::uart::
 
     // Check available data safely
     int available_bytes = 0;
-    try {
-      available_bytes = available();
-    } catch (...) {
-      ESP_LOGE("radon_uart_sensor", "Exception when checking available bytes");
+    if (uart_parent_ == nullptr || !uart_parent_->available()) {
+      ESP_LOGE("radon_uart_sensor", "Error checking available bytes");
       status_binary_sensor_.publish_state(false);
       return;
     }
+    available_bytes = available();
 
     // After Welcome, process data frames
     if (available_bytes >= 28) {
       std::vector<uint8_t> data_frame;
-      try {
-        for (int i = 0; i < 28; ++i) {
-          data_frame.push_back(read());
-        }
-      } catch (...) {
-        ESP_LOGE("radon_uart_sensor", "Exception when reading data frame");
+      // Check if we have enough data before reading
+      if (available() < 28) {
+        ESP_LOGE("radon_uart_sensor", "Not enough data available for reading frame");
         status_binary_sensor_.publish_state(false);
         return;
+      }
+      
+      // Read data frame once we've confirmed there's enough data
+      for (int i = 0; i < 28; ++i) {
+        data_frame.push_back(read());
       }
 
       // Verify CRC
@@ -182,12 +183,12 @@ class RadonUARTSensor : public esphome::PollingComponent, public esphome::uart::
     // Safely check available data
     while (uart_parent_ != nullptr && available() > 0) {
       uint8_t byte;
-      try {
-        byte = read();
-      } catch (...) {
-        ESP_LOGE("radon_uart_sensor", "Exception when reading byte");
+      // Check UART status before reading
+      if (!uart_parent_->available()) {
+        ESP_LOGE("radon_uart_sensor", "Error reading byte");
         break;
       }
+      byte = read();
       welcome_buffer_.push_back(byte);
 
       // Check if "Welcome" string is received
