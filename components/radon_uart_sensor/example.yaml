@@ -2,7 +2,7 @@ uart:
   id: uart_bus
   tx_pin: GPIO1        # Adjust based on your wiring
   rx_pin: GPIO3        # Adjust based on your wiring
-  baud_rate: 9600      # Replace with your sensor's baud rate
+  baud_rate: 115200    # RM-75-Ion sensor uses 115200 baud
   data_bits: 8
   parity: NONE
   stop_bits: 1

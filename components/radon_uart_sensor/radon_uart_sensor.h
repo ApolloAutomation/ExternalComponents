@@ -1,18 +1,48 @@
 // radon_uart_sensor.h
 #pragma once
 
-#include "esphome.h"
+#include "esphome/core/component.h"
+#include "esphome/core/log.h"
+#include "esphome/components/uart/uart.h"
+#include "esphome/components/sensor/sensor.h"
+#include "esphome/components/binary_sensor/binary_sensor.h"
 
 namespace esphome {
 namespace radon_uart_sensor {
 
-class RadonUARTSensor : public PollingComponent, public UARTDevice {
+class RadonUARTSensor : public esphome::PollingComponent, public esphome::uart::UARTDevice {
  public:
-  RadonUARTSensor(UARTComponent *parent) : PollingComponent(10000), UARTDevice(parent) {} // Poll every 10 seconds
+  RadonUARTSensor(esphome::uart::UARTComponent *parent) : PollingComponent(10000), UARTDevice(parent) {} // Poll every 10 seconds
 
   void setup() override {
     ESP_LOGI("radon_uart_sensor", "Initializing Radon UART Sensor");
-    // Optionally, implement any initialization commands here if required
+    
+    // Set names for sensors
+    running_time_sensor_.set_name("Running Time");
+    running_time_sensor_.set_unit_of_measurement("s");
+    
+    cumulative_radon_sensor_.set_name("Cumulative Radon Concentration");
+    cumulative_radon_sensor_.set_unit_of_measurement("Bq/m³");
+    
+    last10_radon_sensor_.set_name("Last 10 Minutes Radon Concentration");
+    last10_radon_sensor_.set_unit_of_measurement("Bq/m³");
+    
+    last1_radon_sensor_.set_name("Last 1-Hour Radon Concentration");
+    last1_radon_sensor_.set_unit_of_measurement("Bq/m³");
+    
+    last12_radon_sensor_.set_name("Last 12-Hours Radon Concentration");
+    last12_radon_sensor_.set_unit_of_measurement("Bq/m³");
+    
+    last24_radon_sensor_.set_name("Last 24-Hours Radon Concentration");
+    last24_radon_sensor_.set_unit_of_measurement("Bq/m³");
+    
+    last48_radon_sensor_.set_name("Last 48-Hours Radon Concentration");
+    last48_radon_sensor_.set_unit_of_measurement("Bq/m³");
+    
+    last96_radon_sensor_.set_name("Last 96-Hours Radon Concentration");
+    last96_radon_sensor_.set_unit_of_measurement("Bq/m³");
+    
+    status_binary_sensor_.set_name("Radon Sensor Online");
   }
 
   void update() override {
@@ -58,15 +88,15 @@ class RadonUARTSensor : public PollingComponent, public UARTDevice {
   }
 
   // Accessor methods for sensors
-  Sensor *get_running_time_sensor() { return &running_time_sensor_; }
-  Sensor *get_cumulative_radon_sensor() { return &cumulative_radon_sensor_; }
-  Sensor *get_last10_radon_sensor() { return &last10_radon_sensor_; }
-  Sensor *get_last1_radon_sensor() { return &last1_radon_sensor_; }
-  Sensor *get_last12_radon_sensor() { return &last12_radon_sensor_; }
-  Sensor *get_last24_radon_sensor() { return &last24_radon_sensor_; }
-  Sensor *get_last48_radon_sensor() { return &last48_radon_sensor_; }
-  Sensor *get_last96_radon_sensor() { return &last96_radon_sensor_; }
-  BinarySensor *get_status_binary_sensor() { return &status_binary_sensor_; } // For online/offline status
+  esphome::sensor::Sensor *get_running_time_sensor() { return &running_time_sensor_; }
+  esphome::sensor::Sensor *get_cumulative_radon_sensor() { return &cumulative_radon_sensor_; }
+  esphome::sensor::Sensor *get_last10_radon_sensor() { return &last10_radon_sensor_; }
+  esphome::sensor::Sensor *get_last1_radon_sensor() { return &last1_radon_sensor_; }
+  esphome::sensor::Sensor *get_last12_radon_sensor() { return &last12_radon_sensor_; }
+  esphome::sensor::Sensor *get_last24_radon_sensor() { return &last24_radon_sensor_; }
+  esphome::sensor::Sensor *get_last48_radon_sensor() { return &last48_radon_sensor_; }
+  esphome::sensor::Sensor *get_last96_radon_sensor() { return &last96_radon_sensor_; }
+  esphome::binary_sensor::BinarySensor *get_status_binary_sensor() { return &status_binary_sensor_; } // For online/offline status
 
  protected:
   // Handle the "Welcome" string sent upon power-up
@@ -92,11 +122,8 @@ class RadonUARTSensor : public PollingComponent, public UARTDevice {
 
   // Parse the 28-byte data frame
   void parse_data_frame(const std::vector<uint8_t> &data_frame) {
-    // Validate Footer (assuming last two bytes are footer)
-    if (!(data_frame[26] == 0x98 && data_frame[27] == 0x03)) { // Adjust based on actual footer
-      ESP_LOGW("radon_uart_sensor", "Unexpected footer: [%02X %02X]", data_frame[26], data_frame[27]);
-      return;
-    }
+    // CRC check is already done in the update() method
+    // The last 4 bytes (24-27) are the CRC-32
 
     // (1) Running Time: bytes 0-3 (Little-Endian)
     uint32_t running_time = data_frame[0] |
@@ -152,14 +179,14 @@ class RadonUARTSensor : public PollingComponent, public UARTDevice {
              last96_radon_sensor_.state);
   }
 
-  // Calculate CRC-32 using Ethernet polynomial (reversed)
+  // Calculate CRC-32 using Ethernet polynomial 0x4C11DB7 (reversed = 0xEDB88320)
   uint32_t calculate_crc32(const uint8_t *data, size_t length) {
     uint32_t crc = 0xFFFFFFFF;
     for (size_t i = 0; i < length; ++i) {
       crc ^= data[i];
       for (int j = 0; j < 8; ++j) {
         if (crc & 1)
-          crc = (crc >> 1) ^ 0xEDB88320; // Reversed Ethernet CRC-32
+          crc = (crc >> 1) ^ 0xEDB88320; // Reversed Ethernet CRC-32 polynomial
         else
           crc = crc >> 1;
       }
@@ -168,17 +195,17 @@ class RadonUARTSensor : public PollingComponent, public UARTDevice {
   }
 
   // Define sensors
-  Sensor running_time_sensor_{ "Running Time (s)" };
-  Sensor cumulative_radon_sensor_{ "Cumulative Radon Concentration (Bq/m³)" };
-  Sensor last10_radon_sensor_{ "Last 10 Minutes Radon Concentration (Bq/m³)" };
-  Sensor last1_radon_sensor_{ "Last 1-Hour Radon Concentration (Bq/m³)" };
-  Sensor last12_radon_sensor_{ "Last 12-Hours Radon Concentration (Bq/m³)" };
-  Sensor last24_radon_sensor_{ "Last 24-Hours Radon Concentration (Bq/m³)" };
-  Sensor last48_radon_sensor_{ "Last 48-Hours Radon Concentration (Bq/m³)" };
-  Sensor last96_radon_sensor_{ "Last 96-Hours Radon Concentration (Bq/m³)" };
+  esphome::sensor::Sensor running_time_sensor_{};
+  esphome::sensor::Sensor cumulative_radon_sensor_{};
+  esphome::sensor::Sensor last10_radon_sensor_{};
+  esphome::sensor::Sensor last1_radon_sensor_{};
+  esphome::sensor::Sensor last12_radon_sensor_{};
+  esphome::sensor::Sensor last24_radon_sensor_{};
+  esphome::sensor::Sensor last48_radon_sensor_{};
+  esphome::sensor::Sensor last96_radon_sensor_{};
   
   // Binary sensor for online/offline status
-  BinarySensor status_binary_sensor_{ "Radon Sensor Online" };
+  esphome::binary_sensor::BinarySensor status_binary_sensor_{};
 
   // Buffers and counters
   std::vector<uint8_t> welcome_buffer_;
