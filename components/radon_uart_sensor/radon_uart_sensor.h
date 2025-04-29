@@ -14,27 +14,41 @@ namespace radon_uart_sensor {
 class RadonUARTSensor : public esphome::PollingComponent, public esphome::uart::UARTDevice {
  public:
   // Default constructor for ESPHome's code generation
-  RadonUARTSensor() : PollingComponent(10000), UARTDevice(nullptr) {
+  RadonUARTSensor()
+    : PollingComponent(10000),
+      UARTDevice(nullptr),
+      welcome_buffer_(),
+      crc_fail_count_(0) {
     uart_parent_ = nullptr;
   }
   
   // Constructor with explicit UART component
-  RadonUARTSensor(esphome::uart::UARTComponent *parent) : PollingComponent(10000), UARTDevice(parent) {
+  RadonUARTSensor(esphome::uart::UARTComponent *parent)
+    : PollingComponent(10000),
+      UARTDevice(parent),
+      welcome_buffer_(),
+      crc_fail_count_(0) {
     uart_parent_ = parent;
   } // Poll every 10 seconds
   
-  // Setter for UART component to be called by ESPHome
+  // Setter for UART parent to be called by ESPHome
   void set_uart_parent(esphome::uart::UARTComponent *parent) {
-    uart_parent_ = parent;
+    if (parent != nullptr) {
+      uart_parent_ = parent;
+    }
   }
   
   void setup() override {
     ESP_LOGI("radon_uart_sensor", "Initializing Radon UART Sensor");
     
-    // Reinitialize the UART connection if parent was set after construction
-    if (uart_parent_ != nullptr) {
-      // Create a new UARTDevice with the parent (this is a hack but should work)
-      new (this) UARTDevice(uart_parent_);
+    // Check if UART parent was provided
+    if (uart_parent_ == nullptr) {
+      ESP_LOGW("radon_uart_sensor", "No UART parent set, sensor will not function!");
+      status_binary_sensor_.publish_state(false);
+    } else {
+      // Set the UART device safely
+      set_uart_device(uart_parent_);
+      status_binary_sensor_.publish_state(true);
     }
 
     // Set names for sensors
@@ -65,21 +79,48 @@ class RadonUARTSensor : public esphome::PollingComponent, public esphome::uart::
     status_binary_sensor_.set_name("Radon Sensor Online");
   }
 
+  // Helper method to safely set the UART device
+  void set_uart_device(esphome::uart::UARTComponent *parent) {
+    if (parent != nullptr) {
+      // UARTDevice doesn't have a public setter, so we need to reconstruct it
+      // using placement new to reinitialize the base UARTDevice part
+      new (static_cast<UARTDevice *>(this)) UARTDevice(parent);
+      this->uart_parent_ = parent;
+    }
+  }
+
   void update() override {
     // Skip if UART is not initialized
     if (uart_parent_ == nullptr) {
       ESP_LOGW("radon_uart_sensor", "UART not initialized, skipping update");
+      status_binary_sensor_.publish_state(false);
       return;
     }
     
     // Handle Welcome String
     handle_welcome_string();
 
+    // Check available data safely
+    int available_bytes = 0;
+    try {
+      available_bytes = available();
+    } catch (...) {
+      ESP_LOGE("radon_uart_sensor", "Exception when checking available bytes");
+      status_binary_sensor_.publish_state(false);
+      return;
+    }
+
     // After Welcome, process data frames
-    if (available() >= 28) {
+    if (available_bytes >= 28) {
       std::vector<uint8_t> data_frame;
-      for (int i = 0; i < 28; ++i) {
-        data_frame.push_back(read());
+      try {
+        for (int i = 0; i < 28; ++i) {
+          data_frame.push_back(read());
+        }
+      } catch (...) {
+        ESP_LOGE("radon_uart_sensor", "Exception when reading data frame");
+        status_binary_sensor_.publish_state(false);
+        return;
       }
 
       // Verify CRC
@@ -138,8 +179,15 @@ class RadonUARTSensor : public esphome::PollingComponent, public esphome::uart::
  protected:
   // Handle the "Welcome" string sent upon power-up
   void handle_welcome_string() {
-    while (available()) {
-      uint8_t byte = read();
+    // Safely check available data
+    while (uart_parent_ != nullptr && available() > 0) {
+      uint8_t byte;
+      try {
+        byte = read();
+      } catch (...) {
+        ESP_LOGE("radon_uart_sensor", "Exception when reading byte");
+        break;
+      }
       welcome_buffer_.push_back(byte);
 
       // Check if "Welcome" string is received
