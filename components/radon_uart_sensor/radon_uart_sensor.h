@@ -180,7 +180,7 @@ class RadonUARTSensor : public esphome::PollingComponent, public esphome::uart::
     last96_radon_sensor_.publish_state(static_cast<float>(last96_radon));
 
     // Optional: Log all parsed values
-    ESP_LOGI("radon_uart_sensor", "Parsed Data - Running Time: %u s, Cumulative Radon: %.2f Bq/m³, Last10: %.2f Bq/m³, Last1: %.2f Bq/m³, Last12: %.2f Bq/m³, Last24: %.2f Bq/m³, Last48: %.2f Bq/m³, Last96: %.2f Bq/m³",
+    ESP_LOGI("radon_uart_sensor", "Parsed Data - Running Time: %" PRIu32 " s, Cumulative Radon: %.2f Bq/m³, Last10: %.2f Bq/m³, Last1: %.2f Bq/m³, Last12: %.2f Bq/m³, Last24: %.2f Bq/m³, Last48: %.2f Bq/m³, Last96: %.2f Bq/m³",
              running_time,
              cumulative_radon_sensor_.state,
              last10_radon_sensor_.state,
